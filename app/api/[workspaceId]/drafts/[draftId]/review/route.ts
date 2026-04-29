@@ -28,9 +28,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     if (!draft) return err("Draft not found", 404);
 
+    type DraftVersion = typeof draft.versions[number];
+
     return ok({
       ...draft,
-      versions: draft.versions.map((v) => ({
+      versions: draft.versions.map((v: DraftVersion) => ({
         ...v,
         complianceJson: v.complianceJson ? JSON.parse(v.complianceJson) : null,
       })),
