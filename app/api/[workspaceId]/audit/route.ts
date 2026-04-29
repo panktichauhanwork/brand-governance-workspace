@@ -29,8 +29,10 @@ export async function GET(req: NextRequest, { params }: Params) {
       db.auditLog.count({ where: { workspaceId } }),
     ]);
 
+    type AuditLogWithUser = typeof logs[number];
+
     return ok({
-      logs: logs.map((l) => ({ ...l, metadata: JSON.parse(l.metadata) })),
+      logs: logs.map((l: AuditLogWithUser) => ({ ...l, metadata: JSON.parse(l.metadata) })),
       total,
       page,
       pages: Math.ceil(total / limit),
