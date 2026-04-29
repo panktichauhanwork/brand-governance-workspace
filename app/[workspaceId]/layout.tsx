@@ -31,6 +31,8 @@ export default async function WorkspaceLayout({ children, params }: Props) {
     orderBy: { createdAt: "asc" },
   });
 
+  type MembershipWithWorkspace = typeof allMemberships[number];
+
   const currentWorkspace: Workspace = {
     id: workspace.id,
     name: workspace.name,
@@ -38,7 +40,7 @@ export default async function WorkspaceLayout({ children, params }: Props) {
     role: membership.role as Workspace["role"],
   };
 
-  const allWorkspaces: Workspace[] = allMemberships.map((m) => ({
+  const allWorkspaces: Workspace[] = allMemberships.map((m: MembershipWithWorkspace) => ({
     id: m.workspace.id,
     name: m.workspace.name,
     slug: m.workspace.slug,
