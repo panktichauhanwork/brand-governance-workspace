@@ -48,6 +48,8 @@ export default async function DashboardPage({ params }: Props) {
     },
   });
 
+  type DraftWithVersion = typeof recentDrafts[number];
+
   const brand = await db.brand.findUnique({ where: { workspaceId: workspace.id } });
   const canCreate = membership.role === "ADMIN" || membership.role === "CLIENT";
 
@@ -122,7 +124,7 @@ export default async function DashboardPage({ params }: Props) {
           </div>
         ) : (
           <ul className="divide-y divide-[#F5F5F5]">
-            {recentDrafts.map((draft) => {
+            {recentDrafts.map((draft: DraftWithVersion) => {
               const score = draft.versions[0]?.complianceScore;
               const cfg = STATUS_CONFIG[draft.status as DraftStatus] ?? STATUS_CONFIG.DRAFT;
               return (
