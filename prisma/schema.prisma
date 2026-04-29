@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Notes ────────────────────────────────────────────────────────────────────
+// SQLite doesn't support native enums; stored as String, validated in app layer.
+// Role:        ADMIN | REVIEWER | CLIENT
+// DraftStatus: DRAFT | IN_REVIEW | APPROVED | REJECTED | REVISION_REQUESTED
+// Channel:     LINKEDIN | TWITTER | EMAIL | BLOG | PRESS_RELEASE
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  memberships   Membership[]
+  versionsCreated DraftVersion[] @relation("VersionCreatedBy")
+  auditLogs     AuditLog[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  memberships Membership[]
+  brand       Brand?
+  drafts      Draft[]
+  auditLogs   AuditLog[]
+}
+
+// Junction: User <-> Workspace with role
+model Membership {
+  id          String    @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        String    @default("CLIENT")
+  deletedAt   DateTime? // Soft delete timestamp
+  createdAt   DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+// One brand per workspace (enforced by @unique on workspaceId)
+model Brand {
+  id             String   @id @default(cuid())
+  workspaceId    String   @unique
+  tone           String
+  dos            String   // JSON array as string: ["do this", ...]
+  donts          String   // JSON array as string: ["avoid this", ...]
+  writingSamples String   // JSON array as string: ["sample text", ...]
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+// Draft is the workflow container; status and metadata live here
+model Draft {
+  id                   String   @id @default(cuid())
+  workspaceId          String
+  title                String
+  channel              String
+  audience             String
+  topic                String
+  status               String   @default("DRAFT")
+  currentVersionNumber Int      @default(1)
+  reviewNote           String?  // populated on reject / revision_requested
+  createdById          String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  versions  DraftVersion[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([createdById])
+}
+
+// Immutable content snapshot; never mutated after creation
+model DraftVersion {
+  id              String   @id @default(cuid())
+  draftId         String
+  versionNumber   Int
+  content         String
+  complianceScore Int?     // 0-100; null = evaluation failed/pending
+  complianceJson  String?  // raw JSON string from AI evaluation
+  createdById     String
+  createdAt       DateTime @default(now())
+
+  draft     Draft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  createdBy User  @relation("VersionCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([draftId, versionNumber])
+  @@index([draftId])
+}
+
+// Append-only audit trail; rows are never updated or deleted
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  action      String   // DRAFT_CREATED | DRAFT_REGENERATED | DRAFT_SUBMITTED | DRAFT_APPROVED | DRAFT_REJECTED | DRAFT_REVISION_REQUESTED | BRAND_UPDATED | MEMBER_ADDED
+  entityType  String   // DRAFT | BRAND | MEMBERSHIP
+  entityId    String
+  metadata    String   @default("{}") // JSON string
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, entityType])
+  @@index([createdAt])
+}
