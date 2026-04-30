@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { ok, err } from "@/lib/api";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   // Auto-create workspace and assign Admin role
-  const result = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = await tx.user.create({ data: { name, email, passwordHash } });
 
     const workspace = await tx.workspace.create({

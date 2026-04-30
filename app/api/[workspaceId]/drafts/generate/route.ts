@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { generateContent, evaluateContent } from "@/lib/ai";
 import { ok, err, withAuth } from "@/lib/api";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 const schema = z.object({
   title: z.string().min(1),
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       throw e;
     }
 
-    const { draft, version } = await db.$transaction(async (tx) => {
+    const { draft, version } = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       const draft = await tx.draft.create({
         data: { workspaceId, title, channel, audience, topic, status: "DRAFT", currentVersionNumber: 1, createdById: userId },
       });
