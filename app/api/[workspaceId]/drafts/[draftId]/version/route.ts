@@ -21,7 +21,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     const versions = await db.draftVersion.findMany({ where: { draftId }, orderBy: { versionNumber: "asc" } });
 
-    return ok(versions.map((v) => ({
+    type DraftVersion = typeof versions[number];
+
+    return ok(versions.map((v: DraftVersion) => ({
       ...v,
       complianceJson: v.complianceJson ? JSON.parse(v.complianceJson) : null,
     })));
