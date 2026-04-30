@@ -37,7 +37,7 @@ export default function BrandPage() {
   const update = (field: keyof Brand, idx: number, val: string) =>
     setBrand((prev) => ({
       ...prev,
-      [field]: (prev[field] as string[]).map((item, i) => (i === idx ? val : item)),
+      [field]: (prev[field] as string[]).map((item: string, i: number) => (i === idx ? val : item)),
     }));
 
   const add = (field: keyof Brand) =>

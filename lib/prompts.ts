@@ -18,7 +18,7 @@ export function buildGenerationPrompt(input: GenerationInput): string {
   const samplesBlock =
     brand.writingSamples.length > 0
       ? brand.writingSamples
-          .map((s, i) => `Sample ${i + 1}:\n${s}`)
+          .map((s: string, i: number) => `Sample ${i + 1}:\n${s}`)
           .join("\n\n")
       : "No samples provided.";
 
@@ -29,10 +29,10 @@ export function buildGenerationPrompt(input: GenerationInput): string {
 **Tone:** ${brand.tone}
 
 **Do's:**
-${brand.dos.map((d) => `- ${d}`).join("\n")}
+${brand.dos.map((d: string) => `- ${d}`).join("\n")}
 
 **Don'ts:**
-${brand.donts.map((d) => `- ${d}`).join("\n")}
+${brand.donts.map((d: string) => `- ${d}`).join("\n")}
 
 **Writing Style Examples:**
 ${samplesBlock}
@@ -64,10 +64,10 @@ export function buildEvaluationPrompt(
 **Tone:** ${brand.tone}
 
 **Do's:**
-${brand.dos.map((d) => `- ${d}`).join("\n")}
+${brand.dos.map((d: string) => `- ${d}`).join("\n")}
 
 **Don'ts:**
-${brand.donts.map((d) => `- ${d}`).join("\n")}
+${brand.donts.map((d: string) => `- ${d}`).join("\n")}
 
 ## Content to Evaluate
 

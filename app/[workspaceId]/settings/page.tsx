@@ -136,7 +136,7 @@ export default function SettingsPage() {
         ) : (
           <ul className="divide-y divide-[#F5F5F5]">
             {members.map((member) => {
-              const initials = member.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+              const initials = member.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
               const isRemoving = removing === member.membershipId;
               return (
                 <li key={member.id} className="group flex items-center justify-between px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors">

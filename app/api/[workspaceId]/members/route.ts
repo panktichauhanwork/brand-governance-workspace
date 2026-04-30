@@ -27,7 +27,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
       orderBy: { createdAt: "asc" },
     });
 
-    return ok(members.map((m) => ({ ...m.user, role: m.role, membershipId: m.id })));
+    type MemberWithUser = typeof members[number];
+
+    return ok(members.map((m: MemberWithUser) => ({ ...m.user, role: m.role, membershipId: m.id })));
   });
 }
 

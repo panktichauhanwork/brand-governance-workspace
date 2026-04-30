@@ -10,7 +10,9 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     });
 
-    const workspaces = memberships.map((m) => ({
+    type MembershipWithWorkspace = typeof memberships[number];
+
+    const workspaces = memberships.map((m: MembershipWithWorkspace) => ({
       id: m.workspace.id,
       name: m.workspace.name,
       slug: m.workspace.slug,
