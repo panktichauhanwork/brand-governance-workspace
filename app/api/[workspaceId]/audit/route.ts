@@ -5,6 +5,14 @@ import { ok, err, withAuth } from "@/lib/api";
 
 type Params = { params: Promise<{ workspaceId: string }> };
 
+function safeParse(json: string | null) {
+  try {
+    return json ? JSON.parse(json) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest, { params }: Params) {
   const { workspaceId: slugOrId } = await params;
   const { searchParams } = new URL(req.url);
@@ -32,7 +40,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     type AuditLogWithUser = typeof logs[number];
 
     return ok({
-      logs: logs.map((l: AuditLogWithUser) => ({ ...l, metadata: JSON.parse(l.metadata) })),
+      logs: logs.map((l: AuditLogWithUser) => ({ ...l, metadata: safeParse(l.metadata) })),
       total,
       page,
       pages: Math.ceil(total / limit),

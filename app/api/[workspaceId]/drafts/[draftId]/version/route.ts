@@ -4,8 +4,17 @@ import { requireRole } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { generateContent, evaluateContent } from "@/lib/ai";
 import { ok, err, withAuth } from "@/lib/api";
+import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ workspaceId: string; draftId: string }> };
+
+function safeParse(json: string | null) {
+  try {
+    return json ? JSON.parse(json) : null;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(_req: NextRequest, { params }: Params) {
   const { workspaceId: slugOrId, draftId } = await params;
@@ -25,7 +34,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     return ok(versions.map((v: DraftVersion) => ({
       ...v,
-      complianceJson: v.complianceJson ? JSON.parse(v.complianceJson) : null,
+      complianceJson: safeParse(v.complianceJson),
     })));
   });
 }
@@ -59,10 +68,10 @@ export async function POST(_req: NextRequest, { params }: Params) {
     const content = await generateContent({ channel: draft.channel, audience: draft.audience, topic: draft.topic, brand });
     const nextVersion = draft.currentVersionNumber + 1;
 
-    const version = await db.$transaction(async (tx) => {
-      const version = await tx.draftVersion.create({ data: { draftId, versionNumber: nextVersion, content, createdById: userId } });
+    const version = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+      const createdVersion = await tx.draftVersion.create({ data: { draftId, versionNumber: nextVersion, content, createdById: userId } });
       await tx.draft.update({ where: { id: draftId }, data: { currentVersionNumber: nextVersion, status: "DRAFT" } });
-      return version;
+      return createdVersion;
     });
 
     let complianceScore: number | null = null;

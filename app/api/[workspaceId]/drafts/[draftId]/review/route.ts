@@ -12,6 +12,14 @@ const reviewSchema = z.object({
   reason: z.string().optional(),
 });
 
+function safeParse(json: string | null) {
+  try {
+    return json ? JSON.parse(json) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(_req: NextRequest, { params }: Params) {
   const { workspaceId: slugOrId, draftId } = await params;
 
@@ -34,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       ...draft,
       versions: draft.versions.map((v: DraftVersion) => ({
         ...v,
-        complianceJson: v.complianceJson ? JSON.parse(v.complianceJson) : null,
+        complianceJson: safeParse(v.complianceJson),
       })),
     });
   });
