@@ -25,14 +25,26 @@ export async function generateContent(input: GenerationInput): Promise<string> {
   const client = getClient();
   const prompt = buildGenerationPrompt(input);
 
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const response = await Promise.race([
+      client.chat.completions.create({
+        model: MODEL,
+        messages: [{ role: "user", content: prompt }],
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('AI request timeout')), 25000)
+      )
+    ]) as OpenAI.Chat.Completions.ChatCompletion;
 
-  const text = response.choices[0]?.message?.content;
-  if (!text) throw new Error("Empty response from OpenAI");
-  return text.trim();
+    const text = response.choices[0]?.message?.content;
+    if (!text) throw new Error("Empty response from OpenAI");
+    return text.trim();
+  } catch (error: any) {
+    if (error.message?.includes('timeout')) {
+      throw new Error('AI service is taking too long. Please try again.');
+    }
+    throw error;
+  }
 }
 
 export async function evaluateContent(
@@ -42,13 +54,35 @@ export async function evaluateContent(
   const client = getClient();
   const prompt = buildEvaluationPrompt(content, brand);
 
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    messages: [{ role: "user", content: prompt }],
-    response_format: { type: "json_object" },
-  });
+  const maxRetries = 2;
+  let lastError: Error;
 
-  const text = response.choices[0]?.message?.content;
-  if (!text) throw new Error("Empty response from OpenAI");
-  return JSON.parse(text) as ComplianceResult;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await Promise.race([
+        client.chat.completions.create({
+          model: MODEL,
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AI request timeout')), 25000)
+        )
+      ]) as OpenAI.Chat.Completions.ChatCompletion;
+
+      const text = response.choices[0]?.message?.content;
+      if (!text) throw new Error("Empty response from OpenAI");
+      return JSON.parse(text) as ComplianceResult;
+    } catch (error: any) {
+      lastError = error;
+      if (attempt < maxRetries && (error.status === 429 || error.message?.includes('timeout'))) {
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        continue;
+      }
+      throw error;
+    }
+  }
+  
+  throw lastError!;
 }
